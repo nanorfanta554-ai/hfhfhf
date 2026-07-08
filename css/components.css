@@ -1142,6 +1142,7 @@ html.no-glass .mini-player,
 html.no-glass .player-fullscreen,
 html.no-glass .toast,
 html.no-glass .lyrics-overlay,
+html.no-glass .detail-modal,
 html.no-glass .time-card,
 html.no-glass .mood-card,
 html.no-glass .sub-card,
@@ -1149,6 +1150,81 @@ html.no-glass .concert-card,
 html.no-glass .passport-card {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+}
+
+/* ── Generic Detail Modal ─────────────────────
+   Opens for album/playlist cards, library categories
+   (Альбомы, Плейлисты, Исполнители...) and settings rows.
+   ───────────────────────────────────────────── */
+.detail-modal {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  background: rgba(7, 7, 13, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-medium) var(--ease-smooth);
+}
+
+.detail-modal.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.detail-modal-card {
+  position: relative;
+  width: 100%;
+  max-width: var(--content-max-width);
+  max-height: 80vh;
+  overflow-y: auto;
+  background: var(--bg-elevated);
+  border: var(--glass-border);
+  border-bottom: none;
+  border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+  padding: var(--space-6) var(--space-5) var(--space-10);
+  transform: translateY(24px);
+  transition: transform var(--duration-medium) var(--ease-spring-soft);
+}
+
+.detail-modal.open .detail-modal-card {
+  transform: translateY(0);
+}
+
+.detail-modal-close {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  background: var(--bg-hover);
+}
+
+.detail-list-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-1);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-smooth);
+}
+
+.detail-list-item:hover {
+  background: var(--bg-hover);
+}
+
+@media (min-width: 1024px) {
+  .detail-modal {
+    align-items: center;
+  }
+  .detail-modal-card {
+    border-radius: var(--radius-2xl);
+    border-bottom: var(--glass-border);
+    max-height: 70vh;
+  }
 }
 
 /* ── No-Animations Override ────────────────── */

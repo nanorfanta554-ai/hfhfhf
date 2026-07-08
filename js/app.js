@@ -88,18 +88,21 @@ class VibeApp {
     // New Releases
     const newReleases = document.getElementById('new-releases');
     if (newReleases) {
-      newReleases.innerHTML = MOCK_DATA.albums.map(album => `
+      newReleases.innerHTML = MOCK_DATA.albums.map(album => {
+        const trackIdx = Math.max(0, MOCK_DATA.tracks.findIndex(t => t.album === album.title));
+        return `
         <div class="album-card card-stagger">
           <div class="album-card-cover">
             <div class="cover-gradient ${album.cover}"></div>
-            <div class="play-fab">
+            <div class="play-fab" onclick="event.stopPropagation(); player.playTrack(${trackIdx})">
               <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
             </div>
           </div>
           <div class="album-card-title">${album.title}</div>
           <div class="album-card-subtitle">${album.artist}</div>
         </div>
-      `).join('');
+      `;
+      }).join('');
     }
 
     // Popular tracks
@@ -139,18 +142,21 @@ class VibeApp {
     // Recommended albums
     const recAlbums = document.getElementById('rec-albums');
     if (recAlbums) {
-      recAlbums.innerHTML = MOCK_DATA.albums.slice(3, 8).map(album => `
+      recAlbums.innerHTML = MOCK_DATA.albums.slice(3, 8).map(album => {
+        const trackIdx = Math.max(0, MOCK_DATA.tracks.findIndex(t => t.album === album.title));
+        return `
         <div class="album-card card-stagger">
           <div class="album-card-cover">
             <div class="cover-gradient ${album.cover}"></div>
-            <div class="play-fab">
+            <div class="play-fab" onclick="event.stopPropagation(); player.playTrack(${trackIdx})">
               <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
             </div>
           </div>
           <div class="album-card-title">${album.title}</div>
           <div class="album-card-subtitle">${album.artist} · ${album.year}</div>
         </div>
-      `).join('');
+      `;
+      }).join('');
     }
 
     // Playlists
@@ -160,7 +166,7 @@ class VibeApp {
         <div class="album-card card-stagger">
           <div class="album-card-cover">
             <div class="cover-gradient ${pl.gradient}"></div>
-            <div class="play-fab">
+            <div class="play-fab" onclick="event.stopPropagation(); player.playTrack(0)">
               <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
             </div>
           </div>
@@ -221,18 +227,21 @@ class VibeApp {
     // New from favorites
     const newFavs = document.getElementById('new-favs');
     if (newFavs) {
-      newFavs.innerHTML = MOCK_DATA.albums.slice(0, 5).map(album => `
+      newFavs.innerHTML = MOCK_DATA.albums.slice(0, 5).map(album => {
+        const trackIdx = Math.max(0, MOCK_DATA.tracks.findIndex(t => t.album === album.title));
+        return `
         <div class="album-card card-stagger">
           <div class="album-card-cover">
             <div class="cover-gradient ${album.cover}"></div>
-            <div class="play-fab">
+            <div class="play-fab" onclick="event.stopPropagation(); player.playTrack(${trackIdx})">
               <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
             </div>
           </div>
           <div class="album-card-title">${album.title}</div>
           <div class="album-card-subtitle">${album.artist}</div>
         </div>
-      `).join('');
+      `;
+      }).join('');
     }
 
     // AI Recommended tracks

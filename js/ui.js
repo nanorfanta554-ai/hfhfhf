@@ -15,6 +15,8 @@ class VibeUI {
     this.setupPullToRefresh();
     this.setupParallaxCovers();
     this.setupScrollEffects();
+    this.setupDetailModalClose();
+    this.setupGlobalDelegatedClicks();
   }
 
   // Ripple effect on click
@@ -187,6 +189,156 @@ class VibeUI {
     cards.forEach((card, i) => {
       card.style.animationDelay = `${i * 60}ms`;
     });
+  }
+
+  // ── Generic Detail Modal ─────────────────
+  // Used by album cards, library categories and settings rows —
+  // all of which previously had no click handler at all.
+  openDetailModal(html) {
+    const modal = document.getElementById('detail-modal');
+    const body = document.getElementById('detail-modal-body');
+    if (!modal || !body) return;
+    body.innerHTML = html;
+    modal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  closeDetailModal() {
+    const modal = document.getElementById('detail-modal');
+    if (!modal) return;
+    modal.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  setupDetailModalClose() {
+    const modal = document.getElementById('detail-modal');
+    const closeBtn = document.getElementById('detail-modal-close-btn');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => this.closeDetailModal());
+    }
+    if (modal) {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) this.closeDetailModal();
+      });
+    }
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Escape') this.closeDetailModal();
+    });
+  }
+
+  // Single delegated listener catches clicks on album cards, library
+  // categories and settings rows — including ones rendered by JS later,
+  // so nothing needs to be re-bound after populateHome()/populateForYou().
+  setupGlobalDelegatedClicks() {
+    document.addEventListener('click', (e) => {
+      // Play button inside an album card — play, don't open the modal
+      const playFab = e.target.closest('.play-fab');
+      if (playFab) return; // has its own onclick with stopPropagation
+
+      // Album / playlist card → open detail modal
+      const albumCard = e.target.closest('.album-card');
+      if (albumCard) {
+        this.openAlbumDetail(albumCard);
+        return;
+      }
+
+      // Library category (skip "Любимые треки", it already has its own onclick)
+      const libCat = e.target.closest('.lib-category');
+      if (libCat && !libCat.hasAttribute('onclick')) {
+        this.openLibraryCategory(libCat);
+        return;
+      }
+
+      // Settings row that navigates somewhere (has a chevron) —
+      // pure toggle rows are handled separately and shouldn't open a modal
+      const settingRow = e.target.closest('.setting-row');
+      if (settingRow && settingRow.querySelector('.chevron-right') && !e.target.closest('.toggle')) {
+        this.openSettingDetail(settingRow);
+        return;
+      }
+    });
+  }
+
+  openAlbumDetail(card) {
+    const title = card.querySelector('.album-card-title')?.textContent.trim() || 'Альбом';
+    const subtitle = card.querySelector('.album-card-subtitle')?.textContent.trim() || '';
+    const coverEl = card.querySelector('.cover-gradient');
+    const coverClass = coverEl ? [...coverEl.classList].find(c => c.startsWith('cover-')) : 'cover-1';
+
+    // Show the real tracklist when we can match it by album name
+    const matchingTracks = MOCK_DATA.tracks.filter(t => t.album === title);
+
+    const tracksHtml = matchingTracks.length ? matchingTracks.map(t => {
+      const idx = MOCK_DATA.tracks.indexOf(t);
+      return `
+        <div class="detail-list-item" onclick="player.playTrack(${idx}); ui.closeDetailModal()">
+          <div class="cover-gradient ${t.cover}" style="width:40px;height:40px;border-radius:var(--radius-sm);flex-shrink:0"></div>
+          <div style="flex:1;min-width:0">
+            <div class="truncate" style="font-weight:var(--weight-medium)">${t.title}</div>
+            <div class="truncate text-sm text-secondary">${t.artist}</div>
+          </div>
+          <div class="text-sm text-tertiary">${t.duration}</div>
+        </div>
+      `;
+    }).join('') : `<p class="text-sm text-secondary">Треки скоро появятся</p>`;
+
+    this.openDetailModal(`
+      <div style="display:flex;gap:var(--space-4);align-items:center;margin-bottom:var(--space-5)">
+        <div class="cover-gradient ${coverClass}" style="width:80px;height:80px;border-radius:var(--radius-lg);flex-shrink:0"></div>
+        <div style="min-width:0">
+          <h2 class="truncate" style="font-size:var(--text-xl);font-weight:var(--weight-bold)">${title}</h2>
+          <p class="truncate text-sm text-secondary">${subtitle}</p>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:var(--space-2)">${tracksHtml}</div>
+    `);
+  }
+
+  openLibraryCategory(libCat) {
+    const label = libCat.querySelector('.lib-label')?.textContent.trim() || '';
+
+    const dataMap = {
+      'Плейлисты': { items: MOCK_DATA.playlists, render: pl => ({ title: pl.title, subtitle: `${pl.tracks} треков`, cover: pl.cover }) },
+      'Альбомы': { items: MOCK_DATA.albums, render: al => ({ title: al.title, subtitle: `${al.artist} · ${al.year}`, cover: al.cover }) },
+      'Исполнители': { items: MOCK_DATA.artists, render: ar => ({ title: ar.name, subtitle: `${ar.genre} · ${ar.followers} подписчиков`, cover: ar.avatar }) }
+    };
+
+    const config = dataMap[label];
+    if (!config) {
+      // No mock data backs this section yet — be honest instead of faking content
+      showToast(`«${label}» — раздел в разработке`);
+      return;
+    }
+
+    const listHtml = config.items.map(item => {
+      const { title, subtitle, cover } = config.render(item);
+      const safeTitle = title.replace(/'/g, "\\'");
+      return `
+        <div class="detail-list-item" onclick="showToast('▶️ Открываем «${safeTitle}»'); ui.closeDetailModal()">
+          <div class="cover-gradient ${cover}" style="width:48px;height:48px;border-radius:var(--radius-md);flex-shrink:0"></div>
+          <div style="flex:1;min-width:0">
+            <div class="truncate" style="font-weight:var(--weight-semibold)">${title}</div>
+            <div class="truncate text-sm text-secondary">${subtitle}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    this.openDetailModal(`
+      <h2 style="font-size:var(--text-xl);font-weight:var(--weight-bold);margin-bottom:var(--space-4)">${label}</h2>
+      <div style="display:flex;flex-direction:column;gap:var(--space-3)">${listHtml}</div>
+    `);
+  }
+
+  openSettingDetail(row) {
+    const label = row.querySelector('.setting-label')?.textContent.trim() || 'Настройка';
+    const sublabel = row.querySelector('.setting-sublabel')?.textContent.trim() || '';
+
+    this.openDetailModal(`
+      <h2 style="font-size:var(--text-xl);font-weight:var(--weight-bold);margin-bottom:var(--space-2)">${label}</h2>
+      <p class="text-secondary" style="margin-bottom:var(--space-5)">${sublabel}</p>
+      <p class="text-sm text-tertiary">Этот раздел появится в одном из следующих обновлений VIBE ✨</p>
+    `);
   }
 }
 

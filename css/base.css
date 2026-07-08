@@ -107,7 +107,12 @@ img, video {
 /* Desktop layout */
 @media (min-width: 1024px) {
   #app {
-    max-width: var(--desktop-max-width);
+    /* Was centered with max-width + margin:0 auto (inherited from the
+       base rule above), which left empty space on both sides on wide
+       monitors and pushed the sidebar away from the real corner.
+       Removing the cap so the sidebar sits flush at the true edge. */
+    max-width: none;
+    margin: 0;
     display: grid;
     grid-template-columns: var(--sidebar-width) 1fr;
     grid-template-rows: 1fr auto auto;
