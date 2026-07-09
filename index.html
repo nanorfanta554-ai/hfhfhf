@@ -581,7 +581,7 @@ img, video {
    ============================================ */
 
 /* ── Page Transitions ────────────────────── */
-.screen {
+.screen.active {
   animation: screenFadeIn var(--duration-medium) var(--ease-smooth) forwards;
 }
 
@@ -3505,6 +3505,19 @@ html.no-animations *::after {
   .player-fullscreen {
     max-width: 100%;
     width: 100%;
+  }
+}
+
+/* ══════════════════════════════════════════
+   ULTRA-WIDE POLISH
+   Sidebar stays flush at the real corner (fixed above),
+   but content stops stretching edge-to-edge on very
+   wide monitors so cards/text stay readable.
+   ══════════════════════════════════════════ */
+@media (min-width: 1600px) {
+  .screens-container {
+    max-width: 1400px;
+    margin: 0 auto;
   }
 }
 
