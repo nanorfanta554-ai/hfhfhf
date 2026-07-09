@@ -20,6 +20,12 @@
 
 
 
+  <!-- Firebase (used only once FIREBASE_CONFIG in the auth script has
+       real keys — see the comment at the top of that section. Safe to
+       load even before that: it just sits unused in demo mode. -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
   <!-- Favicon (inline SVG) -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎵</text></svg>">
   <style>
@@ -1001,7 +1007,7 @@ img, video {
   display: flex;
   align-items: center;
   justify-content: space-around;
-  background: rgba(7, 7, 13, 0.85);
+  background: var(--glass-bg-heavy);
   backdrop-filter: blur(30px) saturate(180%);
   -webkit-backdrop-filter: blur(30px) saturate(180%);
   border-top: 1px solid rgba(255, 255, 255, 0.05);
@@ -1070,7 +1076,7 @@ img, video {
   width: calc(100% - 16px);
   max-width: calc(var(--content-max-width) - 16px);
   height: var(--mini-player-height);
-  background: rgba(20, 20, 36, 0.92);
+  background: var(--glass-bg-heavy);
   backdrop-filter: blur(30px) saturate(180%);
   -webkit-backdrop-filter: blur(30px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -2145,8 +2151,8 @@ html.no-glass .passport-card {
 .detail-modal {
   position: fixed;
   inset: 0;
-  z-index: var(--z-modal);
-  background: rgba(7, 7, 13, 0.75);
+  z-index: var(--z-toast);
+  background: var(--glass-bg-heavy);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   display: flex;
@@ -2224,6 +2230,282 @@ html.no-animations *::after {
   transition-delay: 0s !important;
 }
 
+
+/* ══════════════════════════════════════════
+   AUTH SCREEN (login / register / social)
+   ══════════════════════════════════════════ */
+.auth-screen {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-max);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-deepest);
+  overflow-y: auto;
+  padding: var(--space-6);
+  transition: opacity var(--duration-medium) var(--ease-smooth), visibility var(--duration-medium);
+}
+
+.auth-screen.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.auth-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 400px;
+  background: var(--glass-bg-heavy);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-8) var(--space-6);
+  box-shadow: var(--shadow-xl);
+  margin: auto;
+}
+
+.auth-logo {
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-extrabold);
+  letter-spacing: var(--tracking-wider);
+  text-align: center;
+}
+
+.auth-tagline {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  margin-top: var(--space-1);
+  margin-bottom: var(--space-6);
+}
+
+.auth-tabs {
+  display: flex;
+  background: var(--bg-surface);
+  border-radius: var(--radius-full);
+  padding: 4px;
+  margin-bottom: var(--space-6);
+}
+
+.auth-tab {
+  flex: 1;
+  padding: var(--space-2) 0;
+  text-align: center;
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-smooth);
+}
+
+.auth-tab.active {
+  background: var(--accent-gradient);
+  color: #fff;
+}
+
+.auth-social {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.auth-social-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-smooth);
+}
+
+.auth-social-btn:hover {
+  background: var(--bg-hover);
+  transform: translateY(-1px);
+}
+
+.auth-social-btn:active {
+  transform: scale(0.98);
+}
+
+.auth-social-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  font-weight: var(--weight-bold);
+  font-size: var(--text-sm);
+}
+
+.auth-social-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.auth-social-icon-google { background: #fff; padding: 3px; }
+.auth-social-icon-apple { color: #fff; }
+.auth-social-icon-discord { color: #5865F2; }
+.auth-social-icon-telegram { color: #29B6F6; }
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+  margin-bottom: var(--space-5);
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-default);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.auth-field label {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  font-weight: var(--weight-medium);
+}
+
+.auth-field input {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+  font-size: var(--text-base);
+  transition: border-color var(--duration-fast) var(--ease-smooth);
+}
+
+.auth-field input:focus {
+  border-color: var(--accent-purple);
+}
+
+.auth-error {
+  color: var(--color-error);
+  font-size: var(--text-sm);
+  min-height: 0;
+  display: none;
+}
+
+.auth-error.visible {
+  display: block;
+}
+
+.auth-submit {
+  padding: var(--space-3) 0;
+  border-radius: var(--radius-full);
+  background: var(--accent-gradient);
+  color: #fff;
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-base);
+  cursor: pointer;
+  transition: transform var(--duration-fast) var(--ease-smooth), opacity var(--duration-fast);
+}
+
+.auth-submit:hover {
+  opacity: 0.92;
+}
+
+.auth-submit:active {
+  transform: scale(0.98);
+}
+
+.auth-switch-hint {
+  text-align: center;
+  margin-top: var(--space-5);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.auth-switch-hint a {
+  color: var(--text-accent);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+/* ── Settings detail modal extras (device/service lists, EQ) ── */
+.detail-list-item.with-action {
+  justify-content: space-between;
+}
+
+.detail-action-btn {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-smooth);
+  flex-shrink: 0;
+}
+
+.detail-action-btn.danger {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--color-error);
+}
+
+.detail-action-btn.danger:hover {
+  background: rgba(239, 68, 68, 0.25);
+}
+
+.detail-action-btn.connect {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--color-success);
+}
+
+.detail-action-btn.connected {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+
+.eq-slider-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.eq-slider-row label {
+  width: 64px;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.eq-slider-row input[type="range"] {
+  flex: 1;
+  accent-color: var(--accent-purple);
+}
 
 
 /* ============================================
@@ -3396,7 +3678,7 @@ html.no-animations *::after {
   position: fixed;
   inset: 0;
   z-index: calc(var(--z-player) + 1);
-  background: rgba(7, 7, 13, 0.95);
+  background: var(--glass-bg-heavy);
   backdrop-filter: blur(30px);
   -webkit-backdrop-filter: blur(30px);
   display: flex;
@@ -3524,6 +3806,90 @@ html.no-animations *::after {
   </style>
 </head>
 <body>
+
+  <!-- ═══════════ Auth Screen ═══════════ -->
+  <div class="auth-screen" id="auth-screen">
+    <div class="ambient-bg">
+      <div class="ambient-orb ambient-orb-1"></div>
+      <div class="ambient-orb ambient-orb-2"></div>
+      <div class="ambient-orb ambient-orb-3"></div>
+    </div>
+
+    <div class="auth-card">
+      <div class="auth-logo">
+        <span class="text-gradient">VIBE</span>
+      </div>
+      <p class="auth-tagline" id="auth-tagline">Заходи и слушай своё</p>
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="auth-tab-login" onclick="auth.switchTab('login')">Вход</button>
+        <button class="auth-tab" id="auth-tab-register" onclick="auth.switchTab('register')">Регистрация</button>
+      </div>
+
+      <!-- Social providers -->
+      <div class="auth-social">
+        <button class="auth-social-btn auth-social-google" onclick="auth.loginWithProvider('google')">
+          <span class="auth-social-icon auth-social-icon-google">
+            <svg viewBox="0 0 48 48">
+              <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12s5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24s8.955,20,20,20s20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
+              <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
+              <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/>
+              <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
+            </svg>
+          </span>
+          Продолжить с Google
+        </button>
+        <button class="auth-social-btn auth-social-apple" onclick="auth.loginWithProvider('apple')">
+          <span class="auth-social-icon auth-social-icon-apple">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.365 1.43c0 1.14-.462 2.13-1.164 2.9-.78.85-2.06 1.51-3.09 1.43-.13-1.12.44-2.28 1.16-3.03.79-.83 2.14-1.45 3.09-1.3zM20.5 17.28c-.53 1.22-1.17 2.44-2.09 3.55-.84 1.02-1.87 2.27-3.19 2.28-1.17.02-1.5-.75-3.03-.75-1.53 0-1.9.73-3.02.77-1.28.05-2.25-1.1-3.1-2.11-1.72-2.06-3.05-5.83-1.27-8.4.88-1.28 2.38-2.09 3.86-2.11 1.24-.02 2.36.83 3.1.83.73 0 2.14-1.03 3.6-.88.61.03 2.34.25 3.44 1.86-.09.06-2.06 1.2-2.03 3.59.02 2.85 2.5 3.8 2.53 3.81-.02.06-.4 1.36-1.29 2.66z"/></svg>
+          </span>
+          Продолжить с Apple
+        </button>
+        <button class="auth-social-btn auth-social-discord" onclick="auth.loginWithProvider('discord')">
+          <span class="auth-social-icon auth-social-icon-discord">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.3 5.4A17.6 17.6 0 0015.7 4l-.3.5c1.7.4 2.7 1 3.7 1.7-1.6-.8-3.2-1.2-4.9-1.2h-.4c-1.7 0-3.3.4-4.9 1.2 1-.7 2.2-1.4 3.7-1.7L12.3 4a17.5 17.5 0 00-4.6 1.4C5.4 8.9 4.7 12.3 5 15.6a17.9 17.9 0 005.2 2.6l.7-1c-.9-.3-1.7-.7-2.5-1.3l.4-.3c2.9 1.3 6 1.3 8.9 0l.4.3c-.8.6-1.6 1-2.5 1.3l.7 1a17.8 17.8 0 005.2-2.6c.4-3.9-.6-7.3-2.2-10.2zM9.7 13.6c-.7 0-1.3-.7-1.3-1.5s.6-1.5 1.3-1.5 1.3.7 1.3 1.5-.6 1.5-1.3 1.5zm5.3 0c-.7 0-1.3-.7-1.3-1.5s.6-1.5 1.3-1.5 1.3.7 1.3 1.5-.6 1.5-1.3 1.5z"/></svg>
+          </span>
+          Продолжить с Discord
+        </button>
+        <button class="auth-social-btn auth-social-telegram" onclick="auth.loginWithProvider('telegram')">
+          <span class="auth-social-icon auth-social-icon-telegram">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.5 4.5l-3.1 15c-.2 1-.9 1.3-1.7.8l-4.7-3.5-2.3 2.2c-.3.3-.5.5-1 .5l.3-4.9 8.9-8c.4-.3-.1-.5-.6-.2l-11 6.9-4.8-1.5c-1-.3-1-1 .2-1.5L20.2 3.4c.8-.3 1.6.2 1.3 1.1z"/></svg>
+          </span>
+          Продолжить с Telegram
+        </button>
+      </div>
+
+      <div class="auth-divider"><span>или</span></div>
+
+      <!-- Email / password form -->
+      <form class="auth-form" id="auth-form" onsubmit="return auth.handleSubmit(event)">
+        <div class="auth-field" id="auth-field-name" style="display:none">
+          <label>Имя</label>
+          <input type="text" id="auth-name" placeholder="Как вас зовут?" autocomplete="name">
+        </div>
+        <div class="auth-field">
+          <label>Email</label>
+          <input type="email" id="auth-email" placeholder="you@example.com" autocomplete="email" required>
+        </div>
+        <div class="auth-field">
+          <label>Пароль</label>
+          <input type="password" id="auth-password" placeholder="Минимум 6 символов" autocomplete="current-password" required minlength="6">
+        </div>
+        <div class="auth-field" id="auth-field-confirm" style="display:none">
+          <label>Повторите пароль</label>
+          <input type="password" id="auth-password-confirm" placeholder="Ещё раз">
+        </div>
+
+        <p class="auth-error" id="auth-error"></p>
+
+        <button type="submit" class="auth-submit" id="auth-submit">Войти</button>
+      </form>
+
+      <p class="auth-switch-hint" id="auth-switch-hint">
+        Нет аккаунта? <a onclick="auth.switchTab('register')">Зарегистрироваться</a>
+      </p>
+    </div>
+  </div>
 
   <div id="app">
 
@@ -3732,7 +4098,7 @@ html.no-animations *::after {
 
         <!-- Support Artist -->
         <section style="padding: var(--space-4) var(--space-5)">
-          <div class="concert-card" style="margin:0;background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(236, 72, 153, 0.1));border-color:rgba(139,92,246,0.2)">
+          <div class="concert-card" id="support-artist-card" style="margin:0;background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(236, 72, 153, 0.1));border-color:rgba(139,92,246,0.2)">
             <div style="width:48px;height:48px;border-radius:var(--radius-md);background:var(--accent-gradient);display:flex;align-items:center;justify-content:center;flex-shrink:0">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
             </div>
@@ -3968,7 +4334,7 @@ html.no-animations *::after {
                 <div class="setting-sublabel">Включена по умолчанию</div>
               </div>
             </div>
-            <div class="toggle active"></div>
+            <div class="toggle active" id="toggle-theme"></div>
           </div>
 
           <div class="setting-row">
@@ -3981,7 +4347,7 @@ html.no-animations *::after {
                 <div class="setting-sublabel">Glassmorphism эффекты</div>
               </div>
             </div>
-            <div class="toggle active"></div>
+            <div class="toggle active" id="toggle-glass"></div>
           </div>
 
           <div class="setting-row">
@@ -3994,7 +4360,7 @@ html.no-animations *::after {
                 <div class="setting-sublabel">Плавные spring-анимации</div>
               </div>
             </div>
-            <div class="toggle active"></div>
+            <div class="toggle active" id="toggle-animations"></div>
           </div>
         </div>
 
@@ -4157,6 +4523,21 @@ html.no-animations *::after {
           </div>
         </div>
 
+        <!-- Log out -->
+        <div class="settings-section">
+          <div class="setting-row" id="logout-row" onclick="auth.logout()">
+            <div class="setting-row-left">
+              <div class="setting-icon" style="color:var(--color-error)">
+                <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              </div>
+              <div>
+                <div class="setting-label" style="color:var(--color-error)">Выйти из аккаунта</div>
+                <div class="setting-sublabel" id="logout-account-email"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Version Info -->
         <div style="text-align:center;padding:var(--space-8) 0 var(--space-16);opacity:0.3">
           <p style="font-size:var(--text-sm);color:var(--text-muted)">VIBE v1.0.0</p>
@@ -4241,7 +4622,7 @@ html.no-animations *::after {
           <div class="player-header-label">Сейчас играет</div>
           <div class="player-header-source">Твоя Волна</div>
         </div>
-        <button class="icon-btn" aria-label="Ещё">
+        <button class="icon-btn" id="player-more-btn" aria-label="Ещё">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
         </button>
       </div>
@@ -4494,6 +4875,21 @@ const MOCK_DATA = {
     { time: 72, text: 'Ведёт меня к утру' }
   ],
 
+  // Devices (for Settings → Устройства)
+  devices: [
+    { id: 1, name: 'iPhone 15 Pro', type: '📱 Мобильное устройство', lastActive: 'Сейчас', current: true },
+    { id: 2, name: 'MacBook Pro', type: '💻 Браузер · Chrome', lastActive: '2 часа назад', current: false },
+    { id: 3, name: 'iPad Air', type: '📱 Планшет', lastActive: '3 дня назад', current: false }
+  ],
+
+  // Connected services (for Settings → Подключенные сервисы)
+  connectedServices: [
+    { id: 'telegram', name: 'Telegram', desc: 'Уведомления и Login Widget', connected: true },
+    { id: 'discord', name: 'Discord', desc: 'Rich Presence: показывать трек в статусе', connected: true },
+    { id: 'google', name: 'Google', desc: 'Вход и резервное копирование', connected: true },
+    { id: 'apple', name: 'Apple', desc: 'Вход через Apple ID', connected: false }
+  ],
+
   // Now Playing (initial state)
   nowPlaying: {
     trackIndex: 0,
@@ -4544,6 +4940,332 @@ function getFormattedDate() {
   const now = new Date();
   return `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]}`;
 }
+
+
+// ============================================
+// VIBE — Auth
+// ----------------------------------------------------------
+// HOW TO MAKE THIS 100% REAL (5 minutes, free, no server):
+//   1. Go to https://console.firebase.google.com → Add project
+//   2. Project settings → General → "Your apps" → Add a Web app
+//   3. Copy the firebaseConfig object it gives you and paste it
+//      below, replacing FIREBASE_CONFIG.
+//   4. Authentication → Sign-in method → enable "Email/Password"
+//      and "Google". (Apple sign-in also works here but requires
+//      an Apple Developer account — $99/yr — to configure.)
+//   5. Add your github.io domain under Authentication → Settings
+//      → Authorized domains.
+// That's it — once apiKey below isn't the placeholder anymore,
+// this file automatically switches from demo mode to real
+// Firebase accounts (real database, real Google popup, works
+// across devices/browsers).
+//
+// Discord and Telegram CANNOT be wired this way — both require a
+// server to verify the login (Discord's OAuth token exchange
+// needs a client secret that must never be in frontend code;
+// Telegram's Login Widget needs a server holding the bot token
+// to verify the payload signature). GitHub Pages can't run that
+// server code. They stay as clearly-labeled demo logins below
+// until you add a small backend (e.g. a couple of serverless
+// functions) — happy to help wire that up if/when you have one.
+// ============================================
+
+const FIREBASE_CONFIG = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+class VibeAuth {
+  constructor() {
+    this.mode = 'login'; // 'login' | 'register'
+    this.onReady = null;
+    this.usersKey = 'vibe_users';
+    this.sessionKey = 'vibe_session';
+
+    this.firebaseReady = FIREBASE_CONFIG.apiKey !== 'YOUR_API_KEY'
+      && typeof firebase !== 'undefined';
+
+    if (this.firebaseReady) {
+      firebase.initializeApp(FIREBASE_CONFIG);
+      this.fbAuth = firebase.auth();
+    }
+  }
+
+  init(onReady) {
+    this.onReady = onReady;
+    this.showDemoBanner();
+
+    if (this.firebaseReady) {
+      // Real Firebase session check — persists across devices/browsers
+      this.fbAuth.onAuthStateChanged((fbUser) => {
+        if (fbUser) {
+          const user = {
+            name: fbUser.displayName || fbUser.email.split('@')[0],
+            email: fbUser.email,
+            provider: 'firebase',
+            avatar: 'artist-1'
+          };
+          this.applySessionToApp(user);
+          this.hideAuthScreen(true);
+          if (this.onReady) { this.onReady(); this.onReady = null; }
+          else if (typeof app !== 'undefined') { app.populateHome(); app.populateProfile(); }
+        } else {
+          this.showAuthScreen();
+        }
+      });
+      return;
+    }
+
+    // Demo fallback — localStorage session
+    const session = this.getSession();
+    if (session) {
+      this.applySessionToApp(session);
+      this.hideAuthScreen(true);
+      if (this.onReady) this.onReady();
+    } else {
+      this.showAuthScreen();
+    }
+  }
+
+  showDemoBanner() {
+    if (this.firebaseReady) return;
+    const card = document.querySelector('.auth-card');
+    if (!card || document.getElementById('auth-demo-banner')) return;
+    const banner = document.createElement('p');
+    banner.id = 'auth-demo-banner';
+    banner.style.cssText = 'font-size:var(--text-xs);color:var(--text-tertiary);text-align:center;margin-bottom:var(--space-4);line-height:1.5';
+    banner.innerHTML = '🔧 Демо-режим: аккаунты хранятся в этом браузере.<br>Инструкция по подключению настоящего входа — в комментарии наверху auth.js';
+    card.insertBefore(banner, card.firstChild.nextSibling);
+  }
+
+  // ── Storage helpers (demo mode only) ─────
+  getUsers() {
+    try { return JSON.parse(localStorage.getItem(this.usersKey)) || []; }
+    catch { return []; }
+  }
+
+  saveUsers(users) {
+    localStorage.setItem(this.usersKey, JSON.stringify(users));
+  }
+
+  getSession() {
+    try { return JSON.parse(localStorage.getItem(this.sessionKey)); }
+    catch { return null; }
+  }
+
+  saveSession(user) {
+    localStorage.setItem(this.sessionKey, JSON.stringify(user));
+  }
+
+  // Not cryptographically secure — demo mode only, see file header.
+  hash(str) {
+    let h = 5381;
+    for (let i = 0; i < str.length; i++) {
+      h = ((h << 5) + h) + str.charCodeAt(i);
+      h = h & h;
+    }
+    return h.toString(36);
+  }
+
+  // ── UI ────────────────────────────────────
+  showAuthScreen() {
+    const screen = document.getElementById('auth-screen');
+    if (screen) screen.classList.remove('hidden');
+  }
+
+  hideAuthScreen(instant = false) {
+    const screen = document.getElementById('auth-screen');
+    if (!screen) return;
+    if (instant) {
+      screen.classList.add('hidden');
+    } else {
+      setTimeout(() => screen.classList.add('hidden'), 300);
+    }
+  }
+
+  switchTab(tab) {
+    this.mode = tab;
+    const isRegister = tab === 'register';
+
+    document.getElementById('auth-tab-login').classList.toggle('active', !isRegister);
+    document.getElementById('auth-tab-register').classList.toggle('active', isRegister);
+    document.getElementById('auth-field-name').style.display = isRegister ? 'flex' : 'none';
+    document.getElementById('auth-field-confirm').style.display = isRegister ? 'flex' : 'none';
+    document.getElementById('auth-submit').textContent = isRegister ? 'Зарегистрироваться' : 'Войти';
+    document.getElementById('auth-tagline').textContent = isRegister ? 'Создай аккаунт за пару секунд' : 'Заходи и слушай своё';
+
+    const hint = document.getElementById('auth-switch-hint');
+    hint.innerHTML = isRegister
+      ? 'Уже есть аккаунт? <a onclick="auth.switchTab(\'login\')">Войти</a>'
+      : 'Нет аккаунта? <a onclick="auth.switchTab(\'register\')">Зарегистрироваться</a>';
+
+    this.clearError();
+  }
+
+  showError(msg) {
+    const el = document.getElementById('auth-error');
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.add('visible');
+  }
+
+  clearError() {
+    const el = document.getElementById('auth-error');
+    if (!el) return;
+    el.textContent = '';
+    el.classList.remove('visible');
+  }
+
+  handleSubmit(event) {
+    event.preventDefault();
+    this.clearError();
+
+    const email = document.getElementById('auth-email').value.trim().toLowerCase();
+    const password = document.getElementById('auth-password').value;
+
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      this.showError('Введите корректный email');
+      return false;
+    }
+    if (password.length < 6) {
+      this.showError('Пароль должен быть от 6 символов');
+      return false;
+    }
+
+    if (this.mode === 'register') {
+      const name = document.getElementById('auth-name').value.trim();
+      const confirm = document.getElementById('auth-password-confirm').value;
+      if (!name) { this.showError('Введите имя'); return false; }
+      if (password !== confirm) { this.showError('Пароли не совпадают'); return false; }
+      this.register(name, email, password);
+    } else {
+      this.login(email, password);
+    }
+    return false;
+  }
+
+  register(name, email, password) {
+    if (this.firebaseReady) {
+      this.fbAuth.createUserWithEmailAndPassword(email, password)
+        .then(cred => cred.user.updateProfile({ displayName: name }))
+        .then(() => showToast(`👋 Добро пожаловать, ${name}!`))
+        .catch(err => this.showError(this.friendlyFirebaseError(err)));
+      return;
+    }
+
+    // Demo fallback
+    const users = this.getUsers();
+    if (users.some(u => u.email === email)) {
+      this.showError('Этот email уже зарегистрирован — попробуйте войти');
+      return;
+    }
+    const user = { name, email, passwordHash: this.hash(password), provider: 'email', avatar: 'artist-1' };
+    users.push(user);
+    this.saveUsers(users);
+    this.completeLogin(user);
+    showToast(`👋 Добро пожаловать, ${name}!`);
+  }
+
+  login(email, password) {
+    if (this.firebaseReady) {
+      this.fbAuth.signInWithEmailAndPassword(email, password)
+        .catch(err => this.showError(this.friendlyFirebaseError(err)));
+      return;
+    }
+
+    // Demo fallback
+    const users = this.getUsers();
+    const user = users.find(u => u.email === email);
+    if (!user || user.passwordHash !== this.hash(password)) {
+      this.showError('Неверный email или пароль');
+      return;
+    }
+    this.completeLogin(user);
+    showToast(`👋 С возвращением, ${user.name}!`);
+  }
+
+  friendlyFirebaseError(err) {
+    const map = {
+      'auth/email-already-in-use': 'Этот email уже зарегистрирован — попробуйте войти',
+      'auth/invalid-email': 'Некорректный email',
+      'auth/weak-password': 'Пароль слишком простой',
+      'auth/user-not-found': 'Пользователь не найден',
+      'auth/wrong-password': 'Неверный пароль',
+      'auth/popup-closed-by-user': 'Окно входа было закрыто'
+    };
+    return map[err.code] || err.message;
+  }
+
+  loginWithProvider(provider) {
+    if (this.firebaseReady && (provider === 'google' || provider === 'apple')) {
+      const fbProvider = provider === 'google'
+        ? new firebase.auth.GoogleAuthProvider()
+        : new firebase.auth.OAuthProvider('apple.com');
+      this.fbAuth.signInWithPopup(fbProvider)
+        .then(cred => showToast(`✅ Вход через ${provider === 'google' ? 'Google' : 'Apple'} выполнен`))
+        .catch(err => this.showError(this.friendlyFirebaseError(err)));
+      return;
+    }
+
+    // Discord / Telegram (and Google/Apple before Firebase is configured)
+    // genuinely can't do a real OAuth round-trip from a static site alone —
+    // see the file header. This creates a clearly-labeled demo profile.
+    const demoProfiles = {
+      google: { name: 'Алексей', email: 'alexey@gmail.com' },
+      apple: { name: 'Алексей', email: 'alexey@icloud.com' },
+      discord: { name: 'Алексей', email: 'alexey#0420' },
+      telegram: { name: 'Алексей', email: '@alexey_vibe' }
+    };
+    const profile = demoProfiles[provider] || { name: 'Алексей', email: 'alexey@vibe.app' };
+    const user = { name: profile.name, email: profile.email, provider, avatar: 'artist-1' };
+    this.completeLogin(user);
+    const providerName = provider[0].toUpperCase() + provider.slice(1);
+    const isRealCapable = provider === 'google' || provider === 'apple';
+    showToast(isRealCapable
+      ? `✅ Демо-вход через ${providerName} (настройте Firebase для настоящего входа)`
+      : `✅ Демо-вход через ${providerName} (нужен бэкенд для настоящего входа)`);
+  }
+
+  completeLogin(user) {
+    this.saveSession(user);
+    this.applySessionToApp(user);
+    this.hideAuthScreen();
+
+    if (this.onReady) {
+      this.onReady();
+      this.onReady = null;
+    } else if (typeof app !== 'undefined') {
+      app.populateHome();
+      app.populateProfile();
+    }
+  }
+
+  applySessionToApp(user) {
+    MOCK_DATA.user.name = user.name;
+    MOCK_DATA.user.handle = user.provider === 'email' || user.provider === 'firebase'
+      ? `@${user.email.split('@')[0]}`
+      : user.email;
+    const emailLabel = document.getElementById('logout-account-email');
+    if (emailLabel) emailLabel.textContent = user.email;
+  }
+
+  logout() {
+    if (!confirm('Выйти из аккаунта?')) return;
+    if (this.firebaseReady) {
+      this.fbAuth.signOut().then(() => location.reload());
+      return;
+    }
+    localStorage.removeItem(this.sessionKey);
+    location.reload();
+  }
+}
+
+const auth = new VibeAuth();
+
 
 
 // ============================================
@@ -4784,6 +5506,22 @@ class VibePlayer {
     }
     if (this.els.lyricsCloseBtn) {
       this.els.lyricsCloseBtn.addEventListener('click', () => this.toggleLyrics());
+    }
+
+    // Equalizer (was dead — opens the same EQ modal as in Settings)
+    if (this.els.playerEqBtn) {
+      this.els.playerEqBtn.addEventListener('click', () => ui.renderEqModal());
+    }
+
+    // Queue (was dead — shows what's up next)
+    if (this.els.playerQueueBtn) {
+      this.els.playerQueueBtn.addEventListener('click', () => ui.renderQueueModal());
+    }
+
+    // "..." more menu (was dead)
+    const moreBtn = document.getElementById('player-more-btn');
+    if (moreBtn) {
+      moreBtn.addEventListener('click', () => ui.renderTrackMoreModal());
     }
 
     // Progress bar seek
@@ -5239,6 +5977,10 @@ class VibeUI {
     this.setupScrollEffects();
     this.setupDetailModalClose();
     this.setupGlobalDelegatedClicks();
+    this.setupSectionActions();
+    this.setupLibrarySearch();
+    this.setupProfileButtons();
+    this.setupConcertCards();
   }
 
   // Ripple effect on click
@@ -5273,9 +6015,14 @@ class VibeUI {
     });
   }
 
-  // Toggle switches
+  // Toggle switches (appearance toggles — theme/glass/animations —
+  // are handled separately in setupAppearanceToggles, which owns
+  // their visual state too, so they're skipped here to avoid two
+  // handlers fighting over the same class)
   setupToggleSwitches() {
+    const appearanceIds = ['toggle-theme', 'toggle-glass', 'toggle-animations'];
     document.querySelectorAll('.toggle').forEach(toggle => {
+      if (appearanceIds.includes(toggle.id)) return;
       toggle.addEventListener('click', function() {
         this.classList.toggle('active');
         // Spring animation
@@ -5556,11 +6303,531 @@ class VibeUI {
     const label = row.querySelector('.setting-label')?.textContent.trim() || 'Настройка';
     const sublabel = row.querySelector('.setting-sublabel')?.textContent.trim() || '';
 
+    const richHandlers = {
+      'Качество аудио': () => this.renderQualityModal(),
+      'Эквалайзер': () => this.renderEqModal(),
+      'Устройства': () => this.renderDevicesModal(),
+      'Подключенные сервисы': () => this.renderServicesModal(),
+      'Безопасность': () => this.renderSecurityModal(),
+      'Поделиться профилем': () => this.renderShareModal(sublabel),
+      'Синхронизация': () => {
+        showToast('🔄 Синхронизация между устройствами включена');
+      },
+      'Музыкальные комнаты': () => {
+        showToast('🎧 Совместное прослушивание — в разработке');
+      }
+    };
+
+    if (richHandlers[label]) {
+      richHandlers[label]();
+      return;
+    }
+
     this.openDetailModal(`
       <h2 style="font-size:var(--text-xl);font-weight:var(--weight-bold);margin-bottom:var(--space-2)">${label}</h2>
       <p class="text-secondary" style="margin-bottom:var(--space-5)">${sublabel}</p>
       <p class="text-sm text-tertiary">Этот раздел появится в одном из следующих обновлений VIBE ✨</p>
     `);
+  }
+
+  renderQualityModal() {
+    const options = [
+      { label: 'Низкое', desc: '96 kbps · экономит трафик' },
+      { label: 'Среднее', desc: '160 kbps' },
+      { label: 'Высокое', desc: '320 kbps · по умолчанию' },
+      { label: 'Lossless', desc: 'FLAC · максимальное качество' }
+    ];
+    const current = MOCK_DATA.nowPlaying.quality;
+    const html = options.map(o => `
+      <div class="detail-list-item with-action" onclick="ui.selectQuality('${o.label}')">
+        <div style="min-width:0">
+          <div class="truncate" style="font-weight:var(--weight-semibold)">${o.label}</div>
+          <div class="truncate text-sm text-secondary">${o.desc}</div>
+        </div>
+        ${current.startsWith(o.label) ? '<span style="color:var(--accent-purple);font-size:1.2em">✓</span>' : ''}
+      </div>
+    `).join('');
+
+    this.openDetailModal(`
+      <h2 style="font-size:var(--text-xl);font-weight:var(--weight-bold);margin-bottom:var(--space-4)">Качество аудио</h2>
+      <div style="display:flex;flex-direction:column;gap:var(--space-2)">${html}</div>
+    `);
+  }
+
+  selectQuality(label) {
+    const bitrates = { 'Низкое': '96 kbps', 'Среднее': '160 kbps', 'Высокое': '320 kbps', 'Lossless': 'FLAC' };
+    MOCK_DATA.nowPlaying.quality = `${label} (${bitrates[label]})`;
+    const sublabelEl = document.querySelector('.setting-label + .setting-sublabel, .setting-sublabel');
+    document.querySelectorAll('.setting-row').forEach(row => {
+      if (row.querySelector('.setting-label')?.textContent.trim() === 'Качество аудио') {
+        row.querySelector('.setting-sublabel').textContent = MOCK_DATA.nowPlaying.quality;
+      }
+    });
+    showToast(`🎚️ Качество: ${label}`);
+    this.closeDetailModal();
+  }
+
+  renderEqModal() {
+    const bands = ['60Hz', '250Hz', '1kHz', '4kHz', '12kHz'];
+    const html = bands.map((b, i) => `
+      <div class="eq-slider-row">
+        <label>${b}</label>
+        <input type="range" min="-12" max="12" value="0" oninput="showToast('🎛️ ' + this.previousElementSibling.textContent + ': ' + (this.value>0?'+':'') + this.value + ' dB')">
+      </div>
+    `).join('');
+
+    this.openDetailModal(`
+      <h2 style="font-size:var(--text-xl);font-weight:var(--weight-bold);margin-bottom:var(--space-1)">Эквалайзер</h2>
+      <p class="text-sm text-secondary" style="margin-bottom:var(--space-5)">Пользовательский пресет</p>
+      ${html}
+    `);
+  }
+
+  renderDevicesModal() {
+    const html = MOCK_DATA.devices.map(d => `
+      <div class="detail-list-item with-action" id="device-${d.id}">
+        <div style="min-width:0">
+          <div class="truncate" style="font-weight:var(--weight-semibold)">${d.name}${d.current ? ' · это устройство' : ''}</div>
+          <div class="truncate text-sm text-secondary">${d.type} · ${d.lastActive}</div>
+        </div>
+        ${d.current ? '' : `<span class="detail-action-btn danger" onclick="event.stopPropagation(); ui.revokeDevice(${d.id})">Завершить</span>`}
+      </div>
+    `).join('');
+
+    this.openDetailModal(`
+      <h2 style="font-size:var(--text-xl);font-weight:var(--weight-bold);margin-bottom:var(--space-4)">Устройства</h2>
+      <div style="display:flex;flex-direction:column;gap:var(--space-2)" id="devices-list">${html}</div>
+    `);
+  }
+
+  revokeDevice(id) {
+    MOCK_DATA.devices = MOCK_DATA.devices.filter(d => d.id !== id);
+    const el = document.getElementById(`device-${id}`);
+    if (el) el.remove();
+    document.querySelectorAll('.setting-row').forEach(row => {
+      if (row.querySelector('.setting-label')?.textContent.trim() === 'Устройства') {
+        row.querySelector('.setting-sublabel').textContent = `${MOCK_DATA.devices.length} подключенных устройства`;
+        const badge = row.querySelector('.badge');
+        if (badge) badge.textContent = MOCK_DATA.devices.length;
+      }
+    });
+    showToast('🔒 Сеанс завершён на устройстве');
+  }
+
+  renderServicesModal() {
+    const html = MOCK_DATA.connectedServices.map(s => `
+      <div class="detail-list-item with-action" id="service-${s.id}">
+        <div style="min-width:0">
+          <div class="truncate" style="font-weight:var(--weight-semibold)">${s.name}</div>
+          <div class="truncate text-sm text-secondary">${s.desc}</div>
+        </div>
+        <span class="detail-action-btn ${s.connected ? 'connected' : 'connect'}" onclick="event.stopPropagation(); ui.toggleService('${s.id}')">
+          ${s.connected ? 'Отключить' : 'Подключить'}
+        </span>
+      </div>
+    `).join('');
+
+    this.openDetailModal(`
+      <h2 style="font-size:var(--text-xl);font-weight:var(--weight-bold);margin-bottom:var(--space-4)">Подключенные сервисы</h2>
+      <div style="display:flex;flex-direction:column;gap:var(--space-2)">${html}</div>
+    `);
+  }
+
+  toggleService(id) {
+    const service = MOCK_DATA.connectedServices.find(s => s.id === id);
+    if (!service) return;
+    service.connected = !service.connected;
+    this.renderServicesModal();
+
+    const connectedNames = MOCK_DATA.connectedServices.filter(s => s.connected).map(s => s.name).join(', ');
+    document.querySelectorAll('.setting-row').forEach(row => {
+      if (row.querySelector('.setting-label')?.textContent.trim() === 'Подключенные сервисы') {
+        row.querySelector('.setting-sublabel').textContent = connectedNames || 'Ничего не подключено';
+      }
+    });
+    showToast(service.connected ? `🔗 ${service.name} подключён` : `⛓️‍💥 ${service.name} отключён`);
+  }
+
+  renderSecurityModal() {
+    this.openDetailModal(`
+      <h2 style="font-size:var(--text-xl);font-weight:var(--weight-bold);margin-bottom:var(--space-4)">Безопасность</h2>
+      <div class="auth-field" style="margin-bottom:var(--space-3)">
+        <label>Текущий пароль</label>
+        <input type="password" id="sec-current-pw" placeholder="••••••••">
+      </div>
+      <div class="auth-field" style="margin-bottom:var(--space-3)">
+        <label>Новый пароль</label>
+        <input type="password" id="sec-new-pw" placeholder="Минимум 6 символов" minlength="6">
+      </div>
+      <button class="auth-submit" style="width:100%;margin-top:var(--space-2)" onclick="ui.changePassword()">Сохранить пароль</button>
+      <p class="text-sm text-tertiary" style="margin-top:var(--space-5)">Двухфакторная аутентификация и история входов появятся здесь в следующем обновлении.</p>
+    `);
+  }
+
+  changePassword() {
+    const current = document.getElementById('sec-current-pw')?.value || '';
+    const next = document.getElementById('sec-new-pw')?.value || '';
+    const session = auth.getSession();
+
+    if (!session || session.provider !== 'email') {
+      showToast('Смена пароля доступна только для входа по email');
+      return;
+    }
+    if (next.length < 6) {
+      showToast('Новый пароль должен быть от 6 символов');
+      return;
+    }
+    const users = auth.getUsers();
+    const user = users.find(u => u.email === session.email);
+    if (!user || user.passwordHash !== auth.hash(current)) {
+      showToast('Текущий пароль указан неверно');
+      return;
+    }
+    user.passwordHash = auth.hash(next);
+    auth.saveUsers(users);
+    showToast('🔒 Пароль обновлён');
+    this.closeDetailModal();
+  }
+
+  renderShareModal(link) {
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=10&data=${encodeURIComponent('https://' + link)}`;
+    this.openDetailModal(`
+      <h2 style="font-size:var(--text-xl);font-weight:var(--weight-bold);margin-bottom:var(--space-4);text-align:center">Поделиться профилем</h2>
+      <div style="display:flex;justify-content:center;margin-bottom:var(--space-5)">
+        <div style="background:#fff;padding:var(--space-3);border-radius:var(--radius-lg);box-shadow:var(--shadow-md)">
+          <img src="${qrUrl}" width="180" height="180" alt="QR-код профиля" style="display:block;border-radius:var(--radius-sm)">
+        </div>
+      </div>
+      <div class="detail-list-item" style="background:var(--bg-surface);border-radius:var(--radius-md);cursor:default">
+        <div class="truncate" style="flex:1">${link}</div>
+      </div>
+      <button class="auth-submit" style="width:100%;margin-top:var(--space-4)" onclick="ui.copyShareLink('${link}')">Скопировать ссылку</button>
+    `);
+  }
+
+  copyShareLink(link) {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(`https://${link}`).then(() => showToast('🔗 Ссылка скопирована'));
+    } else {
+      showToast('🔗 ' + link);
+    }
+    this.closeDetailModal();
+  }
+
+  // ── Appearance toggles (theme / glassmorphism / animations) ──
+  // Each toggle below is the SINGLE source of truth for its own
+  // state: it reads its own current visual state, flips it, and
+  // applies both the visual class and the real effect together —
+  // so there's no way for the switch and the actual effect to
+  // drift out of sync.
+  setupAppearanceToggles() {
+    const bounce = (el) => {
+      el.style.transform = 'scale(0.9)';
+      setTimeout(() => { el.style.transform = 'scale(1)'; }, 150);
+    };
+
+    // Theme
+    const themeToggle = document.getElementById('toggle-theme');
+    if (themeToggle) {
+      const savedTheme = localStorage.getItem('vibe_theme') || 'dark';
+      const applyTheme = (dark) => {
+        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        themeToggle.classList.toggle('active', dark);
+        localStorage.setItem('vibe_theme', dark ? 'dark' : 'light');
+      };
+      applyTheme(savedTheme === 'dark');
+      themeToggle.addEventListener('click', () => {
+        const goingDark = !themeToggle.classList.contains('active');
+        applyTheme(goingDark);
+        bounce(themeToggle);
+        showToast(goingDark ? '🌙 Тёмная тема' : '☀️ Светлая тема');
+      });
+    }
+
+    // Glassmorphism (transparency)
+    const glassToggle = document.getElementById('toggle-glass');
+    if (glassToggle) {
+      const savedGlass = localStorage.getItem('vibe_glass') !== 'off'; // default: on
+      const applyGlass = (enabled) => {
+        document.documentElement.classList.toggle('no-glass', !enabled);
+        glassToggle.classList.toggle('active', enabled);
+        localStorage.setItem('vibe_glass', enabled ? 'on' : 'off');
+      };
+      applyGlass(savedGlass);
+      glassToggle.addEventListener('click', () => {
+        const enabling = !glassToggle.classList.contains('active');
+        applyGlass(enabling);
+        bounce(glassToggle);
+      });
+    }
+
+    // Animations
+    const animToggle = document.getElementById('toggle-animations');
+    if (animToggle) {
+      const savedAnims = localStorage.getItem('vibe_animations') !== 'off'; // default: on
+      const applyAnims = (enabled) => {
+        document.documentElement.classList.toggle('no-animations', !enabled);
+        animToggle.classList.toggle('active', enabled);
+        localStorage.setItem('vibe_animations', enabled ? 'on' : 'off');
+      };
+      applyAnims(savedAnims);
+      animToggle.addEventListener('click', () => {
+        const enabling = !animToggle.classList.contains('active');
+        applyAnims(enabling);
+        bounce(animToggle);
+      });
+    }
+  }
+
+  // ── "Все" / "Топ 100" / "Карта" section links ──
+  setupSectionActions() {
+    document.addEventListener('click', (e) => {
+      const action = e.target.closest('.section-action');
+      if (!action) return;
+      const header = action.closest('.section-header');
+      const title = header?.querySelector('.section-title')?.textContent.trim();
+      if (!title) return;
+
+      if (title === 'Концерты рядом') {
+        const venues = MOCK_DATA.concerts.map(c => `${c.venue}, ${c.city}`).join(' | ');
+        window.open(`https://www.google.com/maps/search/${encodeURIComponent(venues)}`, '_blank');
+        return;
+      }
+
+      const map = {
+        'Продолжить': { items: MOCK_DATA.tracks.slice(0, 6), type: 'track' },
+        'Новые релизы': { items: MOCK_DATA.albums, type: 'album' },
+        'Популярное': { items: MOCK_DATA.tracks, type: 'track' },
+        'Недавно слушали': { items: MOCK_DATA.artists, type: 'artist' },
+        'Плейлисты дня': { items: MOCK_DATA.playlists, type: 'playlist' },
+        'Похожие исполнители': { items: MOCK_DATA.artists, type: 'artist' },
+        'Новое от любимых': { items: MOCK_DATA.albums, type: 'album' }
+      };
+      const config = map[title];
+      if (!config) {
+        showToast(`«${title}» — полный список скоро будет доступен`);
+        return;
+      }
+      this.openListModal(title, config.items, config.type);
+    });
+  }
+
+  openListModal(title, items, type) {
+    const renderers = {
+      track: t => ({ cover: t.cover, title: t.title, subtitle: t.artist, onClick: `player.playTrack(${MOCK_DATA.tracks.indexOf(t)}); ui.closeDetailModal()` }),
+      album: a => ({ cover: a.cover, title: a.title, subtitle: a.artist, onClick: `showToast('💿 Открываем «${a.title.replace(/'/g, "\\'")}»'); ui.closeDetailModal()` }),
+      artist: ar => ({ cover: ar.avatar, title: ar.name, subtitle: `${ar.genre} · ${ar.followers}`, onClick: `showToast('👤 Открываем ${ar.name.replace(/'/g, "\\'")}'); ui.closeDetailModal()` }),
+      playlist: pl => ({ cover: pl.cover, title: pl.title, subtitle: `${pl.tracks} треков`, onClick: `player.playTrack(0); ui.closeDetailModal()` })
+    };
+    const renderer = renderers[type];
+    const html = items.map(item => {
+      const { cover, title: t, subtitle, onClick } = renderer(item);
+      return `
+        <div class="detail-list-item" onclick="${onClick}">
+          <div class="cover-gradient ${cover}" style="width:48px;height:48px;border-radius:var(--radius-md);flex-shrink:0"></div>
+          <div style="flex:1;min-width:0">
+            <div class="truncate" style="font-weight:var(--weight-semibold)">${t}</div>
+            <div class="truncate text-sm text-secondary">${subtitle}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    this.openDetailModal(`
+      <h2 style="font-size:var(--text-xl);font-weight:var(--weight-bold);margin-bottom:var(--space-4)">${title}</h2>
+      <div style="display:flex;flex-direction:column;gap:var(--space-3);max-height:60vh;overflow-y:auto">${html}</div>
+    `);
+  }
+
+  // ── Player "Queue" and "..." menu (previously dead buttons) ──
+  renderQueueModal() {
+    const current = MOCK_DATA.nowPlaying.trackIndex;
+    const upcoming = [];
+    for (let i = 1; i <= MOCK_DATA.tracks.length - 1; i++) {
+      upcoming.push(MOCK_DATA.tracks[(current + i) % MOCK_DATA.tracks.length]);
+    }
+    const html = upcoming.slice(0, 10).map(t => {
+      const idx = MOCK_DATA.tracks.indexOf(t);
+      return `
+        <div class="detail-list-item" onclick="player.playTrack(${idx}); ui.closeDetailModal()">
+          <div class="cover-gradient ${t.cover}" style="width:44px;height:44px;border-radius:var(--radius-sm);flex-shrink:0"></div>
+          <div style="flex:1;min-width:0">
+            <div class="truncate" style="font-weight:var(--weight-medium)">${t.title}</div>
+            <div class="truncate text-sm text-secondary">${t.artist}</div>
+          </div>
+          <div class="text-sm text-tertiary">${t.duration}</div>
+        </div>
+      `;
+    }).join('');
+
+    this.openDetailModal(`
+      <h2 style="font-size:var(--text-xl);font-weight:var(--weight-bold);margin-bottom:var(--space-1)">Очередь</h2>
+      <p class="text-sm text-secondary" style="margin-bottom:var(--space-4)">Сейчас играет: ${getCurrentTrack().title}</p>
+      <div style="display:flex;flex-direction:column;gap:var(--space-2)">${html}</div>
+    `);
+  }
+
+  renderTrackMoreModal() {
+    const track = getCurrentTrack();
+    const playlistOptions = MOCK_DATA.playlists.map(pl => `
+      <div class="detail-list-item" onclick="ui.addToPlaylist('${pl.id}')">
+        <div class="cover-gradient ${pl.cover}" style="width:40px;height:40px;border-radius:var(--radius-sm);flex-shrink:0"></div>
+        <div class="truncate" style="font-weight:var(--weight-medium)">${pl.title}</div>
+      </div>
+    `).join('');
+
+    this.openDetailModal(`
+      <h2 style="font-size:var(--text-xl);font-weight:var(--weight-bold);margin-bottom:var(--space-1)">${track.title}</h2>
+      <p class="text-sm text-secondary" style="margin-bottom:var(--space-4)">${track.artist}</p>
+      <div class="detail-list-item" onclick="ui.shareTrack()">
+        <span style="font-size:1.3em">🔗</span>
+        <div class="truncate" style="font-weight:var(--weight-medium)">Поделиться треком</div>
+      </div>
+      <div class="detail-list-item" onclick="showToast('👤 Переход к исполнителю ${track.artist.replace(/'/g, "\\'")}'); ui.closeDetailModal()">
+        <span style="font-size:1.3em">👤</span>
+        <div class="truncate" style="font-weight:var(--weight-medium)">Перейти к исполнителю</div>
+      </div>
+      <p class="text-sm text-secondary" style="margin:var(--space-4) 0 var(--space-2)">Добавить в плейлист:</p>
+      <div style="display:flex;flex-direction:column;gap:var(--space-2);max-height:35vh;overflow-y:auto">${playlistOptions}</div>
+    `);
+  }
+
+  addToPlaylist(playlistId) {
+    const pl = MOCK_DATA.playlists.find(p => String(p.id) === String(playlistId));
+    if (pl) {
+      pl.tracks += 1;
+      showToast(`➕ Добавлено в «${pl.title}»`);
+    }
+    this.closeDetailModal();
+  }
+
+  shareTrack() {
+    const track = getCurrentTrack();
+    const link = `vibe.app/track/${track.id}`;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(`https://${link}`).then(() => showToast('🔗 Ссылка на трек скопирована'));
+    } else {
+      showToast('🔗 ' + link);
+    }
+    this.closeDetailModal();
+  }
+
+  // ── Library search (real client-side filter) ──
+  setupLibrarySearch() {
+    const input = document.getElementById('library-search-input');
+    if (!input) return;
+    input.addEventListener('input', () => {
+      const q = input.value.trim().toLowerCase();
+      document.querySelectorAll('#playlist-grid .playlist-card').forEach(card => {
+        const text = card.textContent.toLowerCase();
+        card.style.display = (!q || text.includes(q)) ? '' : 'none';
+      });
+      document.querySelectorAll('#liked-tracks-list .track-card').forEach(card => {
+        const text = card.textContent.toLowerCase();
+        card.style.display = (!q || text.includes(q)) ? '' : 'none';
+      });
+    });
+  }
+
+  // ── Profile screen: edit profile + avatar + subscription ──
+  setupProfileButtons() {
+    const editBtn = document.querySelector('.btn-ghost');
+    if (editBtn) {
+      editBtn.addEventListener('click', () => this.renderEditProfileModal());
+    }
+
+    const editBadge = document.querySelector('.edit-badge');
+    if (editBadge) {
+      editBadge.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const gradients = ['artist-1', 'artist-2', 'artist-3', 'artist-4', 'artist-5', 'artist-6', 'cover-1', 'cover-3', 'cover-5'];
+        const avatarEl = document.querySelector('.avatar-xl .cover-gradient');
+        if (!avatarEl) return;
+        const current = gradients.find(g => avatarEl.classList.contains(g)) || gradients[0];
+        const next = gradients[(gradients.indexOf(current) + 1) % gradients.length];
+        avatarEl.classList.remove(current);
+        avatarEl.classList.add(next);
+        showToast('🎨 Аватар обновлён');
+      });
+    }
+
+    const subCard = document.querySelector('.sub-card');
+    if (subCard) {
+      subCard.addEventListener('click', () => this.renderSubscriptionModal());
+    }
+  }
+
+  renderEditProfileModal() {
+    this.openDetailModal(`
+      <h2 style="font-size:var(--text-xl);font-weight:var(--weight-bold);margin-bottom:var(--space-4)">Редактировать профиль</h2>
+      <div class="auth-field" style="margin-bottom:var(--space-3)">
+        <label>Имя</label>
+        <input type="text" id="edit-profile-name" value="${MOCK_DATA.user.name}">
+      </div>
+      <div class="auth-field" style="margin-bottom:var(--space-4)">
+        <label>Никнейм</label>
+        <input type="text" id="edit-profile-handle" value="${MOCK_DATA.user.handle}">
+      </div>
+      <button class="auth-submit" style="width:100%" onclick="ui.saveProfile()">Сохранить</button>
+    `);
+  }
+
+  saveProfile() {
+    const name = document.getElementById('edit-profile-name')?.value.trim();
+    const handle = document.getElementById('edit-profile-handle')?.value.trim();
+    if (name) MOCK_DATA.user.name = name;
+    if (handle) MOCK_DATA.user.handle = handle;
+
+    const nameEl = document.querySelector('.profile-name');
+    const handleEl = document.querySelector('.profile-handle');
+    if (nameEl) nameEl.textContent = MOCK_DATA.user.name;
+    if (handleEl) handleEl.textContent = MOCK_DATA.user.handle;
+    if (typeof app !== 'undefined') app.populateHome();
+
+    showToast('✅ Профиль обновлён');
+    this.closeDetailModal();
+  }
+
+  renderSubscriptionModal() {
+    this.openDetailModal(`
+      <h2 style="font-size:var(--text-xl);font-weight:var(--weight-bold);margin-bottom:var(--space-1)">${MOCK_DATA.user.subscription.plan}</h2>
+      <p class="text-sm text-secondary" style="margin-bottom:var(--space-5)">Активна до ${MOCK_DATA.user.subscription.expires}</p>
+      <div class="detail-list-item" onclick="showToast('💳 Управление способом оплаты появится позже')">
+        <span style="font-size:1.3em">💳</span>
+        <div class="truncate" style="font-weight:var(--weight-medium)">Способ оплаты</div>
+      </div>
+      <div class="detail-list-item" onclick="ui.cancelSubscription()">
+        <span style="font-size:1.3em">❌</span>
+        <div class="truncate" style="font-weight:var(--weight-medium);color:var(--color-error)">Отменить подписку</div>
+      </div>
+    `);
+  }
+
+  cancelSubscription() {
+    if (!confirm('Отменить VIBE Premium? Доступ сохранится до конца оплаченного периода.')) return;
+    showToast('Подписка будет отменена в конце периода');
+    this.closeDetailModal();
+  }
+
+  // ── Concert cards (both the static promo card and dynamic list) ──
+  setupConcertCards() {
+    document.addEventListener('click', (e) => {
+      const card = e.target.closest('.concert-card');
+      if (!card) return;
+
+      if (card.id === 'support-artist-card') {
+        showToast('💜 Донаты артистам появятся в одном из следующих обновлений');
+        return;
+      }
+
+      const venue = card.querySelector('.concert-venue')?.textContent.trim();
+      const city = card.querySelector('.concert-city')?.textContent.replace('📍', '').trim();
+      if (venue) {
+        window.open(`https://www.google.com/maps/search/${encodeURIComponent(venue + ' ' + (city || ''))}`, '_blank');
+      } else {
+        showToast('🎟️ Билеты скоро можно будет купить прямо в VIBE');
+      }
+    });
   }
 }
 
@@ -5580,8 +6847,8 @@ class VibeApp {
   init() {
     if (this.initialized) return;
 
-    // Set theme
-    document.documentElement.setAttribute('data-theme', 'dark');
+    // Restore appearance preferences (theme / glass / animations)
+    ui.setupAppearanceToggles();
 
     // Initialize modules
     router.init();
@@ -5926,17 +7193,22 @@ class VibeApp {
 }
 
 // Initialize app when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-  const app = new VibeApp();
-  app.init();
+let app;
 
-  // Re-init UI interactions after dynamic content
-  setTimeout(() => {
-    ui.setupRippleEffect();
-    ui.setupTrackClicks();
-    ui.setupLikeButtons();
-    ui.setupParallaxCovers();
-  }, 100);
+document.addEventListener('DOMContentLoaded', () => {
+  app = new VibeApp();
+
+  auth.init(() => {
+    app.init();
+
+    // Re-init UI interactions after dynamic content
+    setTimeout(() => {
+      ui.setupRippleEffect();
+      ui.setupTrackClicks();
+      ui.setupLikeButtons();
+      ui.setupParallaxCovers();
+    }, 100);
+  });
 });
 
   </script>
