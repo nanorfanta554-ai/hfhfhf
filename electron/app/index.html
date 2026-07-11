@@ -26,11 +26,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 
-  <!-- SoundCloud Widget API — powers real playback for tracks marked
-       source:'soundcloud' in data.js. No API key needed, this is
-       SoundCloud's public embeddable player. -->
-  <script src="https://w.soundcloud.com/player/api.js"></script>
-
   <!-- Favicon (inline SVG) -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎵</text></svg>">
   <style>
@@ -1234,7 +1229,19 @@ img, video {
   align-items: flex-end;
   gap: 2px;
   height: 16px;
+  width: 13px;
   margin-left: var(--space-1);
+  flex-shrink: 0;
+  opacity: 1;
+  transition: opacity var(--duration-normal) var(--ease-smooth);
+}
+
+.eq-mini.paused {
+  opacity: 0;
+}
+
+.eq-mini.paused .eq-mini-bar {
+  animation-play-state: paused;
 }
 
 .eq-mini-bar {
@@ -1246,6 +1253,14 @@ img, video {
 .eq-mini-bar:nth-child(1) { animation: eqBar1 0.8s ease-in-out infinite; }
 .eq-mini-bar:nth-child(2) { animation: eqBar2 0.9s ease-in-out infinite; }
 .eq-mini-bar:nth-child(3) { animation: eqBar3 0.7s ease-in-out infinite; }
+
+.cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  background: var(--bg-surface);
+}
 
 /* ── Music Cards ─────────────────────────── */
 .card {
@@ -3783,6 +3798,7 @@ html.no-animations *::after {
   .screens-container {
     grid-column: 2;
     grid-row: 1;
+    padding-bottom: var(--mini-player-height);
   }
 
   .bottom-nav {
@@ -3863,17 +3879,19 @@ html.no-animations *::after {
   }
 
   .mini-player {
-    grid-column: 1 / -1;
-    max-width: none;
-    width: 100%;
-    left: 0;
+    position: fixed;
+    left: var(--sidebar-width);
+    right: 0;
+    bottom: 0;
+    top: auto;
     transform: none;
+    width: auto;
+    max-width: none;
     border-radius: 0;
     margin: 0;
     border-left: 0;
     border-right: 0;
     border-bottom: 0;
-    position: static;
   }
 
   .screen {
@@ -3915,12 +3933,10 @@ html.no-animations *::after {
 </head>
 <body>
 
-  <!-- Real audio engine — hidden SoundCloud widget, controlled via
-       the SC Widget JS API from player.js -->
-  <iframe id="sc-widget"
-    style="position:fixed;width:0;height:0;border:0;opacity:0;pointer-events:none"
-    allow="autoplay"
-    src="https://w.soundcloud.com/player/?url=&auto_play=false&show_artwork=false"></iframe>
+  <!-- Real audio engine — plays actual streamed audio from Audius
+       (see js/audius.js). Controlled via the standard HTMLMediaElement
+       API in player.js — no mock/simulated playback. -->
+  <audio id="audio-engine" preload="auto"></audio>
 
   <!-- ═══════════ Auth Screen ═══════════ -->
   <div class="auth-screen" id="auth-screen">
@@ -4674,7 +4690,7 @@ html.no-animations *::after {
         <div class="mini-player-title">Midnight Drive</div>
         <div class="mini-player-artist">Neon Pulse</div>
       </div>
-      <div class="eq-mini" style="display:none">
+      <div class="eq-mini paused" id="mini-eq">
         <div class="eq-mini-bar"></div>
         <div class="eq-mini-bar"></div>
         <div class="eq-mini-bar"></div>
@@ -4897,17 +4913,16 @@ const MOCK_DATA = {
     }
   },
 
-  // Tracks — the first 6 are REAL, playable tracks streamed live from
-  // SoundCloud (Chillhop Music's official channel, embeddable via their
-  // public widget player — no API key needed, no mock audio).
-  // The rest are catalog/browsing entries not wired to real audio yet.
+  // Tracks — this is placeholder catalog data for browsing/UI richness.
+  // Real, actually-playable tracks are fetched live from Audius at
+  // startup (see js/audius.js) and added to the front of this array.
   tracks: [
-    { id: 1, title: 'Traces', artist: 'Chillhop Music', album: 'Chillhop Singles', duration: '3:15', cover: 'cover-3', liked: true, source: 'soundcloud', scUrl: 'https://soundcloud.com/chillhopdotcom/traces' },
-    { id: 2, title: 'Some Days', artist: 'Chillhop Music', album: 'Chillhop Singles', duration: '2:47', cover: 'cover-2', liked: false, source: 'soundcloud', scUrl: 'https://soundcloud.com/chillhopdotcom/some-days-19' },
-    { id: 3, title: 'Demo Track 1 (Evil Needle)', artist: 'Styles Davis', album: 'Chillhop Sample Packs', duration: '2:10', cover: 'cover-7', liked: true, source: 'soundcloud', scUrl: 'https://soundcloud.com/chillhopdotcom/styles-davis-demo-track-1' },
-    { id: 4, title: 'Back Track', artist: 'The Doppelgangaz × Chillhop', album: 'Chillhop Singles', duration: '3:02', cover: 'cover-1', liked: false, source: 'soundcloud', scUrl: 'https://soundcloud.com/chillhopdotcom/the-doppelgangaz-back-track' },
-    { id: 5, title: 'Demo Track (CYGN Astral)', artist: 'Philanthrope', album: 'Chillhop Sample Packs', duration: '1:58', cover: 'cover-12', liked: true, source: 'soundcloud', scUrl: 'https://soundcloud.com/chillhopdotcom/philanthrope-promothrope' },
-    { id: 6, title: 'Soulful', artist: "L'indécis × Chillhop", album: 'Playtime', duration: '3:24', cover: 'cover-10', liked: false, source: 'soundcloud', scUrl: 'https://soundcloud.com/chillhopdotcom/lindecis-soulful' },
+    { id: 1, title: 'Midnight Drive', artist: 'Neon Pulse', album: 'Synthetic Horizons', duration: '3:42', cover: 'cover-3', liked: true },
+    { id: 2, title: 'Whispers in Rain', artist: 'Luna Shade', album: 'Dreamscape', duration: '4:15', cover: 'cover-2', liked: false },
+    { id: 3, title: 'Gravity Falls', artist: 'ASTRA', album: 'Stellar', duration: '3:28', cover: 'cover-7', liked: true },
+    { id: 4, title: 'Lost in Tokyo', artist: 'Kai Horizon', album: 'Neon Nights', duration: '5:01', cover: 'cover-1', liked: false },
+    { id: 5, title: 'Северное сияние', artist: 'Дыхание', album: 'Полярная ночь', duration: '4:33', cover: 'cover-12', liked: true },
+    { id: 6, title: 'Crystal Echoes', artist: 'Crystal Waves', album: 'Transparent', duration: '3:56', cover: 'cover-10', liked: false },
     { id: 7, title: 'Raw Energy', artist: 'VOLT', album: 'Charged', duration: '2:58', cover: 'cover-9', liked: true },
     { id: 8, title: 'Golden Hour', artist: 'Sunset Collective', album: 'Warm Tones', duration: '4:47', cover: 'cover-8', liked: false },
     { id: 9, title: 'Deep Blue', artist: 'Marina Del', album: 'Oceanic', duration: '3:35', cover: 'cover-2', liked: true },
@@ -5069,6 +5084,64 @@ function getFormattedDate() {
   const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
   const now = new Date();
   return `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]}`;
+}
+
+
+// ============================================
+// Never — Audius integration
+// ----------------------------------------------------------
+// Audius (https://docs.audius.co) is a real, free, no-API-key-needed
+// music catalog. Docs recommend sending an app_name identifying your
+// app — no registration required for read access like search/trending
+// and streaming. This is genuinely real audio, not a mock.
+// ============================================
+
+const AUDIUS_APP_NAME = 'Never';
+const AUDIUS_HOST = 'https://api.audius.co/v1';
+
+function audiusFormatDuration(totalSeconds) {
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = Math.floor(totalSeconds % 60).toString().padStart(2, '0');
+  return `${mins}:${secs}`;
+}
+
+function audiusMapTrack(t) {
+  return {
+    id: `audius-${t.id}`,
+    title: t.title,
+    artist: (t.user && (t.user.name || t.user.handle)) || 'Неизвестный исполнитель',
+    album: t.album || 'Audius',
+    duration: audiusFormatDuration(t.duration || 0),
+    artwork: (t.artwork && (t.artwork['480x480'] || t.artwork['150x150'] || t.artwork['1000x1000'])) || null,
+    cover: 'cover-3', // fallback gradient if artwork fails to load
+    liked: false,
+    source: 'audius',
+    streamUrl: `${AUDIUS_HOST}/tracks/${t.id}/stream?app_name=${AUDIUS_APP_NAME}`
+  };
+}
+
+async function audiusFetchTrending(limit = 12) {
+  const res = await fetch(`${AUDIUS_HOST}/tracks/trending?app_name=${AUDIUS_APP_NAME}&limit=${limit}`);
+  if (!res.ok) throw new Error(`Audius trending failed: ${res.status}`);
+  const json = await res.json();
+  return (json.data || []).map(audiusMapTrack);
+}
+
+async function audiusSearch(query, limit = 20) {
+  const res = await fetch(`${AUDIUS_HOST}/tracks/search?query=${encodeURIComponent(query)}&app_name=${AUDIUS_APP_NAME}`);
+  if (!res.ok) throw new Error(`Audius search failed: ${res.status}`);
+  const json = await res.json();
+  return (json.data || []).slice(0, limit).map(audiusMapTrack);
+}
+
+// Renders either a real cover image (Audius artwork) or the existing
+// CSS gradient placeholder — used everywhere a cover is shown so both
+// real and catalog tracks render consistently.
+function coverHtml(item, extraClass = '') {
+  if (item.artwork) {
+    return `<img src="${item.artwork}" alt="" class="cover-img ${extraClass}" loading="lazy" onerror="this.outerHTML='<div class=\\'cover-gradient ${item.cover || 'cover-3'} ${extraClass}\\'></div>'">`;
+  }
+  return `<div class="cover-gradient ${item.cover || 'cover-3'} ${extraClass}"></div>`;
 }
 
 
@@ -5548,10 +5621,8 @@ class VibePlayer {
     this.visualizerRAF = null;
     this.progressInterval = null;
 
-    // Real audio engine (SoundCloud Widget) — see initSoundCloudWidget()
-    this.scWidget = null;
-    this.scReady = false;
-    this.scDurationMs = 0;
+    // Real audio engine — native HTML5 <audio>, see initAudioEngine()
+    this.audioEl = null;
 
     // DOM Elements (will be set in init)
     this.els = {};
@@ -5597,32 +5668,18 @@ class VibePlayer {
     this.setupEventListeners();
     this.updateUI();
     this.initVisualizer();
-    this.initSoundCloudWidget();
+    this.initAudioEngine();
   }
 
-  // Real audio playback via SoundCloud's public embeddable widget —
-  // this is genuine streamed audio, not a simulation. Only tracks
-  // with track.source === 'soundcloud' (see data.js) are wired up;
-  // that's the current real catalog until more sources are added.
-  initSoundCloudWidget() {
-    const frame = document.getElementById('sc-widget');
-    if (!frame || typeof SC === 'undefined') return;
+  // Real audio playback via a plain HTML5 <audio> element streaming
+  // directly from Audius (see js/audius.js) — genuine audio, not a
+  // simulation. Only tracks with track.source === 'audius' (real,
+  // fetched from Audius at startup) are wired up to actual sound.
+  initAudioEngine() {
+    this.audioEl = document.getElementById('audio-engine');
+    if (!this.audioEl) return;
 
-    this.scWidget = SC.Widget(frame);
-
-    this.scWidget.bind(SC.Widget.Events.READY, () => {
-      this.scReady = true;
-      const firstReal = this.getPlayableIndexes()[0];
-      if (typeof firstReal === 'number') {
-        const track = getTrack(firstReal);
-        this.scWidget.load(track.scUrl, {
-          auto_play: false,
-          callback: () => this.scWidget.getDuration((ms) => { this.scDurationMs = ms; })
-        });
-      }
-    });
-
-    this.scWidget.bind(SC.Widget.Events.PLAY, () => {
+    this.audioEl.addEventListener('play', () => {
       this.isPlaying = true;
       this.updatePlayButton();
       this.updateVisualizer();
@@ -5631,7 +5688,7 @@ class VibePlayer {
       }
     });
 
-    this.scWidget.bind(SC.Widget.Events.PAUSE, () => {
+    this.audioEl.addEventListener('pause', () => {
       this.isPlaying = false;
       this.updatePlayButton();
       this.updateVisualizer();
@@ -5640,19 +5697,23 @@ class VibePlayer {
       }
     });
 
-    this.scWidget.bind(SC.Widget.Events.PLAY_PROGRESS, (data) => {
-      if (!this.scDurationMs) return;
-      this.progress = (data.currentPosition / this.scDurationMs) * 100;
-      this.updateProgress(data.currentPosition, this.scDurationMs);
+    this.audioEl.addEventListener('timeupdate', () => {
+      if (!this.audioEl.duration) return;
+      this.progress = (this.audioEl.currentTime / this.audioEl.duration) * 100;
+      this.updateProgress(this.audioEl.currentTime * 1000, this.audioEl.duration * 1000);
     });
 
-    this.scWidget.bind(SC.Widget.Events.FINISH, () => {
+    this.audioEl.addEventListener('ended', () => {
       if (this.repeat === 'one') {
-        this.scWidget.seekTo(0);
-        this.scWidget.play();
+        this.audioEl.currentTime = 0;
+        this.audioEl.play();
       } else {
         this.nextTrack();
       }
+    });
+
+    this.audioEl.addEventListener('error', () => {
+      showToast('⚠️ Не удалось загрузить трек — проверьте интернет-соединение');
     });
   }
 
@@ -5808,15 +5869,13 @@ class VibePlayer {
   togglePlay() {
     const track = getTrack(this.currentTrackIndex);
 
-    if (track.source === 'soundcloud' && this.scWidget) {
-      this.scWidget.isPaused((paused) => {
-        if (paused) this.scWidget.play();
-        else this.scWidget.pause();
-        // isPlaying/vinyl/visualizer get updated by the PLAY/PAUSE
-        // widget events themselves (see initSoundCloudWidget).
-      });
+    if (track.source === 'audius' && this.audioEl && this.audioEl.src) {
+      if (this.audioEl.paused) this.audioEl.play();
+      else this.audioEl.pause();
+      // isPlaying/vinyl/visualizer get updated by the play/pause
+      // audio events themselves (see initAudioEngine).
     } else {
-      showToast('🎧 Реальное аудио пока подключено только для треков из подборки Chillhop — остальной каталог в разработке');
+      showToast('🎧 Реальное аудио пока подключено только для треков из Audius — остальной каталог в разработке');
       return;
     }
 
@@ -5831,7 +5890,7 @@ class VibePlayer {
   // Indexes of tracks that are actually wired to real audio
   getPlayableIndexes() {
     return MOCK_DATA.tracks
-      .map((t, i) => (t.source === 'soundcloud' ? i : null))
+      .map((t, i) => (t.source === 'audius' ? i : null))
       .filter(i => i !== null);
   }
 
@@ -5969,31 +6028,40 @@ class VibePlayer {
   seekTo(percent) {
     this.progress = percent;
     const track = getTrack(this.currentTrackIndex);
-    if (track.source === 'soundcloud' && this.scWidget && this.scDurationMs) {
-      this.scWidget.seekTo((percent / 100) * this.scDurationMs);
+    if (track.source === 'audius' && this.audioEl && this.audioEl.duration) {
+      this.audioEl.currentTime = (percent / 100) * this.audioEl.duration;
     } else {
       this.updateProgress();
     }
   }
 
   // UI Updates
+  // Applies either a real artwork image (Audius) or the CSS gradient
+  // placeholder to a .cover-gradient element.
+  applyCover(el, track, extraClass = '') {
+    if (!el) return;
+    if (track.artwork) {
+      el.className = `cover-gradient ${extraClass}`;
+      el.style.backgroundImage = `url("${track.artwork}")`;
+      el.style.backgroundSize = 'cover';
+      el.style.backgroundPosition = 'center';
+    } else {
+      el.className = `cover-gradient ${track.cover} ${extraClass}`;
+      el.style.backgroundImage = '';
+    }
+  }
+
   updateUI() {
     const track = getTrack(this.currentTrackIndex);
 
     // Mini player
-    if (this.els.miniCover) {
-      this.els.miniCover.className = `cover-gradient ${track.cover}`;
-    }
+    this.applyCover(this.els.miniCover, track);
     if (this.els.miniTitle) this.els.miniTitle.textContent = track.title;
     if (this.els.miniArtist) this.els.miniArtist.textContent = track.artist;
 
     // Full player
-    if (this.els.playerBg) {
-      this.els.playerBg.className = `player-bg-image cover-gradient ${track.cover}`;
-    }
-    if (this.els.playerCoverImg) {
-      this.els.playerCoverImg.className = `cover-gradient ${track.cover}`;
-    }
+    this.applyCover(this.els.playerBg, track, 'player-bg-image');
+    this.applyCover(this.els.playerCoverImg, track);
     if (this.els.playerTitle) this.els.playerTitle.textContent = track.title;
     if (this.els.playerArtist) this.els.playerArtist.textContent = track.artist;
     if (this.els.playerDuration) this.els.playerDuration.textContent = track.duration;
@@ -6018,10 +6086,11 @@ class VibePlayer {
       this.els.playerPlayBtn.innerHTML = this.isPlaying ? pauseIcon : playIcon;
     }
 
-    // Update equalizer visibility
-    const eqMini = document.querySelector('.eq-mini');
+    // Update equalizer visibility (fade only — never removed from
+    // the flex flow, so play/pause never shifts the buttons beside it)
+    const eqMini = document.getElementById('mini-eq');
     if (eqMini) {
-      eqMini.style.display = this.isPlaying ? 'flex' : 'none';
+      eqMini.classList.toggle('paused', !this.isPlaying);
     }
   }
 
@@ -6128,8 +6197,8 @@ class VibePlayer {
   playTrack(index) {
     const track = getTrack(index);
 
-    if (track.source !== 'soundcloud' || !this.scWidget) {
-      showToast('🎧 Пока по-настоящему играют только треки из подборки Chillhop (первые в списке) — остальной каталог в разработке');
+    if (track.source !== 'audius' || !track.streamUrl || !this.audioEl) {
+      showToast('🎧 Пока по-настоящему играют только треки из Audius (со значком ●) — остальной каталог в разработке');
       return;
     }
 
@@ -6139,13 +6208,9 @@ class VibePlayer {
     this.updateUI();
     showToast(`🎵 ${track.title} — ${track.artist}`);
 
-    this.scWidget.load(track.scUrl, {
-      auto_play: true,
-      callback: () => {
-        this.scWidget.getDuration((ms) => {
-          this.scDurationMs = ms;
-        });
-      }
+    this.audioEl.src = track.streamUrl;
+    this.audioEl.play().catch(() => {
+      showToast('⚠️ Не удалось начать воспроизведение');
     });
   }
 }
@@ -6458,7 +6523,7 @@ class VibeUI {
       const idx = MOCK_DATA.tracks.indexOf(t);
       return `
         <div class="detail-list-item" onclick="player.playTrack(${idx}); ui.closeDetailModal()">
-          <div class="cover-gradient ${t.cover}" style="width:40px;height:40px;border-radius:var(--radius-sm);flex-shrink:0"></div>
+          <div style="width:40px;height:40px;border-radius:var(--radius-sm);flex-shrink:0;overflow:hidden">${coverHtml(t)}</div>
           <div style="flex:1;min-width:0">
             <div class="truncate" style="font-weight:var(--weight-medium)">${t.title}</div>
             <div class="truncate text-sm text-secondary">${t.artist}</div>
@@ -6867,7 +6932,7 @@ class VibeUI {
       const idx = MOCK_DATA.tracks.indexOf(t);
       return `
         <div class="detail-list-item" onclick="player.playTrack(${idx}); ui.closeDetailModal()">
-          <div class="cover-gradient ${t.cover}" style="width:44px;height:44px;border-radius:var(--radius-sm);flex-shrink:0"></div>
+          <div style="width:44px;height:44px;border-radius:var(--radius-sm);flex-shrink:0;overflow:hidden">${coverHtml(t)}</div>
           <div style="flex:1;min-width:0">
             <div class="truncate" style="font-weight:var(--weight-medium)">${t.title}</div>
             <div class="truncate text-sm text-secondary">${t.artist}</div>
@@ -7109,6 +7174,34 @@ class VibeApp {
 
     this.initialized = true;
     console.log('🎵 Never initialized successfully');
+
+    this.loadAudiusTracks();
+  }
+
+  // Fetches real, actually-playable tracks from Audius and puts them
+  // at the front of the catalog, then re-renders so they show up
+  // everywhere (Home, Library, mini-player defaults to track 0, etc.)
+  async loadAudiusTracks() {
+    try {
+      const tracks = await audiusFetchTrending(12);
+      if (!tracks.length) return;
+
+      MOCK_DATA.tracks = [...tracks, ...MOCK_DATA.tracks];
+
+      this.populateHome();
+      this.populateForYou();
+      this.populateLibrary();
+
+      setTimeout(() => {
+        ui.setupTrackClicks();
+        ui.setupLikeButtons();
+      }, 50);
+
+      showToast(`🎧 Загружено ${tracks.length} реальных треков из Audius`);
+    } catch (err) {
+      console.error('Audius fetch failed:', err);
+      showToast('⚠️ Не удалось загрузить треки из Audius — проверьте интернет-соединение');
+    }
   }
 
   populateHome() {
@@ -7129,7 +7222,7 @@ class VibeApp {
       continueGrid.innerHTML = MOCK_DATA.tracks.slice(0, 6).map((track, i) => `
         <div class="continue-card card-stagger" data-track-index="${i}" onclick="player.playTrack(${i})">
           <div class="continue-card-cover">
-            <div class="cover-gradient ${track.cover}"></div>
+            ${coverHtml(track)}
           </div>
           <div class="continue-card-info">
             <div class="continue-card-title">${track.title}</div>
@@ -7166,7 +7259,7 @@ class VibeApp {
         <div class="track-card ripple-effect" data-track-index="${i}">
           <div class="track-number">${i + 1}</div>
           <div class="track-cover">
-            <div class="cover-gradient ${track.cover}"></div>
+            ${coverHtml(track)}
           </div>
           <div class="track-info">
             <div class="track-title">${track.title}${track.source==="soundcloud" ? ' <span title="Реальное аудио" style="opacity:.5">●</span>' : ''}</div>
@@ -7304,7 +7397,7 @@ class VibeApp {
       aiTracks.innerHTML = MOCK_DATA.tracks.slice(5, 10).map((track, i) => `
         <div class="track-card ripple-effect" data-track-index="${i + 5}">
           <div class="track-cover">
-            <div class="cover-gradient ${track.cover}"></div>
+            ${coverHtml(track)}
           </div>
           <div class="track-info">
             <div class="track-title">${track.title}${track.source==="soundcloud" ? ' <span title="Реальное аудио" style="opacity:.5">●</span>' : ''}</div>
@@ -7374,7 +7467,7 @@ class VibeApp {
       likedTracks.innerHTML = MOCK_DATA.tracks.filter(t => t.liked).map((track, i) => `
         <div class="track-card ripple-effect" data-track-index="${MOCK_DATA.tracks.indexOf(track)}">
           <div class="track-cover">
-            <div class="cover-gradient ${track.cover}"></div>
+            ${coverHtml(track)}
           </div>
           <div class="track-info">
             <div class="track-title">${track.title}${track.source==="soundcloud" ? ' <span title="Реальное аудио" style="opacity:.5">●</span>' : ''}</div>
